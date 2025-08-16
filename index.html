@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Product Finance Calculator (Flat Interest + Downpayment)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; background:#f3f6fb; color:#123}
+  header{background:linear-gradient(135deg,#4facfe,#00f2fe); color:#fff; padding:16px; text-align:center; font-weight:800; letter-spacing:.2px}
+  main{max-width:980px;margin:22px auto;padding:0 14px}
+  .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 8px 28px rgba(15,60,110,.06);border:1px solid #e8f2ff}
+  h2{margin:0 0 10px;font-size:20px;color:#0b2f4a}
+  .row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .row2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  label{font-size:13px;color:#345}
+  input{width:100%;padding:10px;border-radius:10px;border:1px solid #e5eef9;background:#fbfdff}
+  .btn{background:linear-gradient(90deg,#4facfe,#00f2fe); color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer; margin-top:10px}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .kpi .box{background:linear-gradient(180deg,#fff,#fbfdff); border:1px solid #eef6ff; border-radius:10px; padding:10px}
+  .kpi .label{font-size:12px; color:#6b7a86}
+  .kpi .value{font-size:16px; font-weight:900}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+  th,td{padding:8px;border-bottom:1px dashed #e9f2fb;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  .table-wrap{max-height:360px;overflow:auto;border-radius:10px}
+  .note{font-size:12px;color:#5b6b7a;margin-top:6px}
+  @media (max-width:900px){ .row{grid-template-columns:1fr 1fr} .kpi{grid-template-columns:1fr 1fr 1fr} }
+  @media (max-width:640px){ .row{grid-template-columns:1fr} .row2{grid-template-columns:1fr} .kpi{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>📊 Product Finance Calculator — Flat Interest + Downpayment</header>
+<main>
+  <div class="card">
+    <h2>इनपुट (Inputs)</h2>
+
+    <div class="row">
+      <div>
+        <label>Product Amount (₹)</label>
+        <input id="prodAmt" type="number" value="100000" />
+      </div>
+      <div>
+        <label>Margin Money (₹)</label>
+        <input id="marginMoney" type="number" value="20000" />
+      </div>
+      <div>
+        <label>Process / File Charges (%) — remaining amount पर</label>
+        <input id="procPct" type="number" step="0.01" value="2.5" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Stamp Charges (₹)</label>
+        <input id="stamp" type="number" value="1500" />
+      </div>
+      <div>
+        <label>Extra Charges (₹)</label>
+        <input id="extra" type="number" value="500" />
+      </div>
+      <div>
+        <label>Owner Charges (₹)</label>
+        <input id="owner" type="number" value="0" />
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Company Rate (% per year)</label>
+        <input id="rate" type="number" step="0.01" value="12" />
+      </div>
+      <div>
+        <label>Tenure (months)</label>
+        <input id="months" type="number" value="24" />
+      </div>
+    </div>
+
+    <button class="btn" onclick="calcAll()"><i class="fa-solid fa-calculator"></i> Calculate</button>
+
+    <div class="kpi">
+      <div class="box">
+        <div class="label">Downpayment</div>
+        <div id="k_down" class="value">-</div>
+      </div>
+      <div class="box">
+        <div class="label">Loan Principal (Finance Amount)</div>
+        <div id="k_principal" class="value">-</div>
+      </div>
+      <div class="box">
+        <div class="label">Total Interest (Flat)</div>
+        <div id="k_interest" class="value">-</div>
+      </div>
+      <div class="box">
+        <div class="label">Total Payable (Principal + Interest)</div>
+        <div id="k_total" class="value">-</div>
+      </div>
+      <div class="box">
+        <div class="label">Monthly EMI (Flat)</div>
+        <div id="k_emi" class="value">-</div>
+      </div>
+      <div class="box">
+        <div class="label">Tenure (months)</div>
+        <div id="k_tenure" class="value">-</div>
+      </div>
+    </div>
+
+    <div class="note">
+      लॉजिक (आपकी requirement के हिसाब से):  
+      Downpayment = Margin Money + (Remaining × Process%) + Stamp + Extra + Owner.  
+      Remaining = Product Amount − Margin Money.  
+      Interest (Flat) = Remaining × (Rate% प्रति वर्ष) × (Months/12).  
+      EMI (Flat) = (Remaining + Interest) / Months.  
+      नीचे मासिक तालिका में EMI, Interest share और Principal share व Balance दिखेगा (Flat-model).
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>EMI (₹)</th>
+            <th>Interest (₹)</th>
+            <th>Principal (₹)</th>
+            <th>Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const round2 = x => Math.round((+x + Number.EPSILON)*100)/100;
+  const fmt = v => (v===null||v===undefined||isNaN(+v))? '-' : '₹ ' + Number(v).toLocaleString(undefined,{maximumFractionDigits:2});
+
+  function calcAll(){
+    const A = +document.getElementById('prodAmt').value;       // Product Amount
+    const M = +document.getElementById('marginMoney').value;   // Margin Money
+    const pPct = +document.getElementById('procPct').value;    // Process/File %
+    const stamp = +document.getElementById('stamp').value;
+    const extra = +document.getElementById('extra').value;
+    const owner = +document.getElementById('owner').value;
+    const rYear = +document.getElementById('rate').value;      // annual %
+    const N = +document.getElementById('months').value;        // months
+
+    if(!(A>0) || !(N>0) || M<0 || pPct<0 || rYear<0){
+      alert('कृपया वैध इनपुट दें'); return;
+    }
+    if(M>A){ alert('Margin Money product amount से ज्यादा नहीं हो सकता'); return; }
+
+    const remaining = A - M; // amount to be financed (principal)
+    const procFee = remaining * (pPct/100);
+    const downpayment = round2(M + procFee + stamp + extra + owner);
+
+    // Flat interest model (as requested)
+    const totalInterest = round2(remaining * (rYear/100) * (N/12));
+    const totalPayable  = round2(remaining + totalInterest);
+    const emiFlat = round2(totalPayable / N);
+
+    // For flat model monthly split:
+    const monthlyInterest = round2(totalInterest / N);
+    const monthlyPrincipal = round2(remaining / N);
+
+    // KPIs
+    document.getElementById('k_down').textContent = fmt(downpayment);
+    document.getElementById('k_principal').textContent = fmt(remaining);
+    document.getElementById('k_interest').textContent = fmt(totalInterest);
+    document.getElementById('k_total').textContent = fmt(totalPayable);
+    document.getElementById('k_emi').textContent = fmt(emiFlat);
+    document.getElementById('k_tenure').textContent = N.toString();
+
+    // Table
+    const tbody = document.querySelector('#tbl tbody');
+    tbody.innerHTML = '';
+    let balance = remaining;
+    for(let m=1; m<=N; m++){
+      // Last month adjust for rounding:
+      const prin = (m===N) ? round2(balance) : monthlyPrincipal;
+      const intr = (m===N) ? round2(totalInterest - monthlyInterest*(N-1)) : monthlyInterest;
+      const emi  = round2(prin + intr);
+      balance = round2(balance - prin);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m}</td>
+        <td style="text-align:right">${fmt(emi)}</td>
+        <td style="text-align:right">${fmt(intr)}</td>
+        <td style="text-align:right">${fmt(prin)}</td>
+        <td style="text-align:right">${fmt(balance)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // Run once on load
+  window.addEventListener('load', calcAll);
+</script>
+</body>
+</html>
